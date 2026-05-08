@@ -1,3 +1,12 @@
+---
+title: Synthesis
+emoji: 🧠
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # Synthesis
 ### Adaptive problem generator for students with testing anxiety
  
