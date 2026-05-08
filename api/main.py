@@ -83,3 +83,53 @@ def get_solution(problem_id: str):
         return {"error": "Problem not found"}
     problem_data = json.loads(results['documents'][0])
     return {"solution": problem_data.get('solution', 'No solution available')}
+
+@app.post("/submit/{problem_id}")
+def submit_answer(problem_id: str, answer: dict):
+    collection = get_problems_collection()
+    results = collection.get(ids=[problem_id])
+    if not results['documents']:
+        return {"error": "Problem not found"}
+    
+    problem_data = json.loads(results['documents'][0])
+    
+    from openai import OpenAI
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    client = OpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        base_url=os.getenv("OPENAI_BASE_URL")
+    )
+    
+    response = client.chat.completions.create(
+        model="llama3.2:latest",
+        messages=[
+            {
+                "role": "system",
+                "content": """You are a fair tutor grading a student answer.
+Compare the student answer to the correct solution and return ONLY valid JSON:
+{
+  "result": "correct" or "partial" or "incorrect",
+  "score": 0 to 100,
+  "feedback": "specific feedback on what they got right or wrong",
+  "what_they_missed": "what concept or step they missed, or null if correct"
+}"""
+            },
+            {
+                "role": "user",
+                "content": f"Problem: {problem_data['problem']}\n\nCorrect solution: {problem_data['solution']}\n\nStudent answer: {answer['answer']}"
+            }
+        ],
+        temperature=0.1
+    )
+    
+    raw = response.choices[0].message.content
+    try:
+        start = raw.find('{')
+        end = raw.rfind('}') + 1
+        result = json.loads(raw[start:end])
+    except:
+        result = {"result": "error", "feedback": "Could not grade answer, try again"}
+    
+    return result
