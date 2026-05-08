@@ -1,14 +1,10 @@
 import os
 import sys
-import json
 from pypdf import PdfReader
-from sentence_transformers import SentenceTransformer
-from db import get_chunks_collection
+from db import get_chunks_collection, get_concepts_collection
 from dotenv import load_dotenv
 
 load_dotenv()
-
-model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def chunk_text(text, chunk_size=500, overlap=50):
     words = text.split()
@@ -27,15 +23,12 @@ def ingest_pdf(filepath, chunk_type="notes"):
         full_text += page.extract_text() + " "
 
     chunks = chunk_text(full_text)
-    print(f"Created {len(chunks)} chunks, embedding...")
+    print(f"Created {len(chunks)} chunks, storing...")
 
-    embeddings = model.encode(chunks).tolist()
     collection = get_chunks_collection()
-
-    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+    for i, chunk in enumerate(chunks):
         collection.add(
             documents=[chunk],
-            embeddings=[embedding],
             metadatas=[{"source": filepath, "chunk_type": chunk_type}],
             ids=[f"{filepath}_{i}"]
         )

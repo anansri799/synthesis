@@ -29,34 +29,45 @@ def generate_problem(concept_pair):
         messages=[
             {
                 "role": "system",
-                "content": """You are an expert tutor that creates challenging but fair problems.
-Given two concepts, create a problem requiring BOTH concepts.
-Return ONLY valid JSON, no backticks, no markdown, no special characters or backslashes.
-Use plain English only inside JSON strings.
-Exact format:
+                "content": """You are an expert tutor. Create a problem combining two concepts.
+You MUST respond with ONLY a JSON object. No backticks, no markdown, no extra text.
+Use simple plain English. No math symbols, no backslashes, no special characters.
+Format:
 {
-  "problem": "problem statement in plain text",
+  "problem": "problem statement here",
   "concepts_tested": ["concept 1", "concept 2"],
-  "hints": [
-    "hint 1 - conceptual nudge only",
-    "hint 2 - structural guidance",
-    "hint 3 - near solution"
-  ],
-  "solution": "full solution in plain text"
+  "hints": ["hint 1", "hint 2", "hint 3"],
+  "solution": "solution here"
 }"""
             },
             {
                 "role": "user",
-                "content": f"Create a problem combining: {concept_pair[0]} and {concept_pair[1]}"
+                "content": f"Create a simple problem combining: {concept_pair[0]} and {concept_pair[1]}. Keep all text very simple, no special characters."
             }
-        ]
+        ],
+        temperature=0.1
     )
     raw = response.choices[0].message.content
-    start = raw.find('{')
-    end = raw.rfind('}') + 1
-    cleaned = raw[start:end]
-    cleaned = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', cleaned)
-    return json.loads(cleaned)
+    # Try multiple JSON extraction strategies
+    try:
+        start = raw.find('{')
+        end = raw.rfind('}') + 1
+        return json.loads(raw[start:end])
+    except:
+        try:
+            import re
+            cleaned = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', raw)
+            cleaned = re.sub(r'\\(?!["\\/bfnrtu])', '', cleaned)
+            start = cleaned.find('{')
+            end = cleaned.rfind('}') + 1
+            return json.loads(cleaned[start:end])
+        except Exception as e:
+            return {
+                "problem": f"Combine these concepts: {concept_pair[0]} and {concept_pair[1]}",
+                "concepts_tested": concept_pair,
+                "hints": ["Think about the first concept", "Now apply the second concept", "Combine both approaches"],
+                "solution": "Solution generation failed - try again"
+            }
 
 def save_problem(problem_data, concept_pair):
     collection = get_problems_collection()
