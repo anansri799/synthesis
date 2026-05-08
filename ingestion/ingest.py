@@ -1,8 +1,9 @@
 import os
 import sys
+import json
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
-from db import get_connection
+from db import get_chunks_collection
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,18 +29,16 @@ def ingest_pdf(filepath, chunk_type="notes"):
     chunks = chunk_text(full_text)
     print(f"Created {len(chunks)} chunks, embedding...")
 
-    embeddings = model.encode(chunks)
+    embeddings = model.encode(chunks).tolist()
+    collection = get_chunks_collection()
 
-    conn = get_connection()
-    cur = conn.cursor()
-    for chunk, embedding in zip(chunks, embeddings):
-        cur.execute(
-            "INSERT INTO chunks (content, source, chunk_type, embedding) VALUES (%s, %s, %s, %s)",
-            (chunk, filepath, chunk_type, embedding.tolist())
+    for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+        collection.add(
+            documents=[chunk],
+            embeddings=[embedding],
+            metadatas=[{"source": filepath, "chunk_type": chunk_type}],
+            ids=[f"{filepath}_{i}"]
         )
-    conn.commit()
-    cur.close()
-    conn.close()
     print(f"Done! {len(chunks)} chunks stored.")
 
 if __name__ == "__main__":

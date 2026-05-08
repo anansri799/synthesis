@@ -1,7 +1,8 @@
 import os
 import json
+import re
 from openai import OpenAI
-from db import get_connection
+from db import get_chunks_collection, get_concepts_collection
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -12,13 +13,10 @@ client = OpenAI(
 )
 
 def get_all_chunks():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id, content, chunk_type FROM chunks;")
-    rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    return rows
+    collection = get_chunks_collection()
+    results = collection.get()
+    return list(zip(results['ids'], results['documents'], 
+                   [m['chunk_type'] for m in results['metadatas']]))
 
 def extract_concepts(chunks):
     combined = "\n\n".join([f"[{ctype}] {content}" for _, content, ctype in chunks])
@@ -28,21 +26,19 @@ def extract_concepts(chunks):
         messages=[
             {
                 "role": "system",
-                "content": """You are an expert at analyzing study material. 
-Extract the key concepts from the provided notes and problems.
-Return ONLY a JSON object in this exact format, nothing else:
+                "content": """You are an expert at analyzing study material.
+Extract key concepts from the provided notes and problems.
+Return ONLY valid JSON, no backticks, no markdown, no special characters.
+Exact format:
 {
-  "concepts": ["concept 1", "concept 2", ...],
-  "combinations_seen": [["concept A", "concept B"], ...],
-  "combinations_unseen": [["concept X", "concept Y"], ...]
-}
-combinations_seen = concept pairs that appear together in problems.
-combinations_unseen = concept pairs from notes that haven't been combined in problems yet.
-These unseen combinations are the gaps we want to generate problems for."""
+  "concepts": ["concept 1", "concept 2"],
+  "combinations_seen": [["concept A", "concept B"]],
+  "combinations_unseen": [["concept X", "concept Y"]]
+}"""
             },
             {
                 "role": "user",
-                "content": f"Analyze this study material:\n\n{combined}"
+                "content": f"Analyze this study material and identify concept pairs that appear in notes but have NOT been combined in any problem yet. These are the most important gaps.\n\n{combined}"
             }
         ]
     )
@@ -50,24 +46,16 @@ These unseen combinations are the gaps we want to generate problems for."""
     raw = response.choices[0].message.content
     start = raw.find('{')
     end = raw.rfind('}') + 1
-    if start == -1 or end == 0:
-        raise ValueError(f"No JSON found in response: {raw}")
-    return json.loads(raw[start:end])
+    cleaned = raw[start:end]
+    cleaned = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', cleaned)
+    return json.loads(cleaned)
 
 def save_concepts(concepts_data):
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS concepts (
-            id SERIAL PRIMARY KEY,
-            data JSONB,
-            created_at TIMESTAMP DEFAULT NOW()
-        );
-    """)
-    cur.execute("INSERT INTO concepts (data) VALUES (%s)", [json.dumps(concepts_data)])
-    conn.commit()
-    cur.close()
-    conn.close()
+    collection = get_concepts_collection()
+    collection.add(
+        documents=[json.dumps(concepts_data)],
+        ids=["latest"]
+    )
     print("Concepts saved.")
 
 if __name__ == "__main__":
