@@ -30,6 +30,7 @@ export default function App() {
     const res = await fetch(`${API}/generate`, { method: "POST" });
     const data = await res.json();
     setProblem(data);
+    await fetch(`${API}/start/${data.problem_id}`, { method: "POST" });
     setLoading(false);
   }
 
@@ -134,7 +135,17 @@ export default function App() {
               <p style={{ fontSize: 14, marginBottom: 8 }}>{feedback.feedback}</p>
               {feedback.what_they_missed && (
                 <p style={{ fontSize: 13, color: "#666" }}>Missed: {feedback.what_they_missed}</p>
+              )
+              {feedback.anxiety_signal && feedback.anxiety_signal !== "unknown" && (
+                <p style={{ fontSize: 12, marginTop: 8, color: "#888" }}>
+                  Pattern: <strong>{feedback.anxiety_signal}</strong> — 
+                  {feedback.anxiety_signal === "anxiety" && " you knew this but froze. Practice under timed conditions."}
+                  {feedback.anxiety_signal === "gap" && " this is a genuine knowledge gap. Review the concepts."}
+                  {feedback.anxiety_signal === "careless" && " slow down and read carefully."}
+                  {feedback.anxiety_signal === "confident" && " solid. Move to harder combinations."}
+                </p>
               )}
+              }
             </div>
           )}
         </div>
