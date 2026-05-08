@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const API = "http://127.0.0.1:8001";
+const API = "https://anansri799-synthesis.hf.space";
 
 export default function App() {
   const [problem, setProblem] = useState(null);
