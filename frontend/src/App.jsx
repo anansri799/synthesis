@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const API = "http://127.0.0.1:8000";
+const API = "http://127.0.0.1:8001";
 
 export default function App() {
   const [problem, setProblem] = useState(null);
@@ -135,17 +135,19 @@ export default function App() {
               <p style={{ fontSize: 14, marginBottom: 8 }}>{feedback.feedback}</p>
               {feedback.what_they_missed && (
                 <p style={{ fontSize: 13, color: "#666" }}>Missed: {feedback.what_they_missed}</p>
-              )
+              )}
               {feedback.anxiety_signal && feedback.anxiety_signal !== "unknown" && (
                 <p style={{ fontSize: 12, marginTop: 8, color: "#888" }}>
-                  Pattern: <strong>{feedback.anxiety_signal}</strong> — 
+                  Pattern: <strong>{feedback.anxiety_signal}</strong> —
                   {feedback.anxiety_signal === "anxiety" && " you knew this but froze. Practice under timed conditions."}
                   {feedback.anxiety_signal === "gap" && " this is a genuine knowledge gap. Review the concepts."}
                   {feedback.anxiety_signal === "careless" && " slow down and read carefully."}
                   {feedback.anxiety_signal === "confident" && " solid. Move to harder combinations."}
                 </p>
               )}
-              }
+              <p style={{ fontSize: 12, color: "#aaa", marginTop: 8 }}>
+                Time: {feedback.time_spent_seconds}s · Hints used: {feedback.hints_used}
+              </p>
             </div>
           )}
         </div>
