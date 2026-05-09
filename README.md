@@ -9,7 +9,11 @@ pinned: false
 
 # Synthesis
 ### Adaptive problem generator for students with testing anxiety
- 
+
+**Live demo:** https://synthesis-app-sigma.vercel.app
+
+**Backend:** https://huggingface.co/spaces/anansri799/synthesis
+
 Most study tools pull questions from a bank. Synthesis generates novel problems by reasoning about the gaps in your knowledge — concepts you understand individually but have never been tested on together. It also learns the difference between a genuine knowledge gap and anxiety-driven freeze, and adapts accordingly.
  
 ---
@@ -44,7 +48,7 @@ The inference layer is OpenAI-compatible — swapping from local Ollama to NVIDI
  
 ```bash
 # Clone and set up
-git clone https://github.com/yourusername/synthesis
+git clone https://github.com/anansri799/synthesis
 cd synthesis
 python3.11 -m venv venv
 source venv/bin/activate
